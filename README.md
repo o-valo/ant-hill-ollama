@@ -57,18 +57,6 @@ Olav (o-valo) GitHub Profile
 MIT License - "Andere Leute sollen auch Spaß daran haben!" :-)
 
 
----
-
-### 2. Mini-Update für die `llm_proxy.py` (Header)
-Damit die Log-Datei auch den richtigen Namen zeigt:
-```python
-# ... (Anfang der Datei)
-VERSION = "1.7.6-ant-hill"
-# ...
-if __name__ == '__main__':
-    log_event(f"--- ant-hill-ollama (Heinzelmännchen-Brücke) {VERSION} gestartet ---")
-    app.run(host='0.0.0.0', port=PORT)
-
 
 
 
