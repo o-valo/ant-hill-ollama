@@ -1,28 +1,19 @@
 #!/usr/bin/env python3
-# Version: 1.7.6-ant-hill
-# Description: The core translator of the ant-hill-ollama bridge.
+# Version: 1.8.2-ant-hill-fixed
+# Description: Turbo version with context boost and correct network endpoint.
 # Status: GitHub Ready - Universal Version
 
 import os, requests, uuid, json
 from flask import Flask, request, Response, jsonify
 
-VERSION = "1.7.6-ant-hill"
+VERSION = "1.8.2-ant-hill-fixed"
 app = Flask(__name__)
 
 # --- KONFIGURATION ---
-# Diese Werte können über Umgebungsvariablen gesetzt werden.
-# Falls nichts gesetzt ist, werden die Standardwerte (Defaults) verwendet.
-
-# Die URL Ihres Ollama-Servers (lokal oder im Netzwerk)
-OLLAMA_URL = os.getenv("OLLAMA_URL", "http://127.0.0.1:11434")
-
-# Das Modell, welches für die Tool-Nutzung verwendet werden soll
+# Zurückgesetzt auf deine Netzwerk-IP für Ollama
+OLLAMA_URL = os.getenv("OLLAMA_URL", "http://10.7.0.79:11434")
 SELECTED_MODEL = os.getenv("MODEL_NAME", "qwen3.5:9b-q8_0")
-
-# Der Port, auf dem dieser Proxy lauschen soll
 PORT = int(os.getenv("PROXY_PORT", 11435))
-
-# Name der Log-Datei für Ereignisse und Debugging
 LOG_FILE = os.getenv("PROXY_LOG", "proxy_output.log")
 
 def log_event(msg):
@@ -49,22 +40,17 @@ def convert_to_anthropic(ollama_data):
             "stop_reason": "end_turn"
         }
 
-        # Text-Inhalt verarbeiten
         if message.get('content'):
             anthropic_resp["content"].append({"type": "text", "text": message['content']})
 
-        # Tool-Calls verarbeiten (Die Heinzelmännchen-Magie)
         if message.get('tool_calls'):
             for tc in message['tool_calls']:
                 t_name = tc['function']['name']
                 t_args = tc['function']['arguments']
                 
-                # Falls arguments ein JSON-String ist, umwandeln
                 if isinstance(t_args, str):
                     t_args = json.loads(t_args)
                 
-                # --- PARAMETER MAPPING ---
-                # Wandelt 'path' in 'file_path' um, falls die CLI dies erwartet.
                 if "path" in t_args and "file_path" not in t_args:
                     log_event(f"🔧 Bridge-Fix: Mapping 'path' -> 'file_path' für {t_name}")
                     t_args["file_path"] = t_args.pop("path")
@@ -90,16 +76,11 @@ def proxy_anthropic_messages():
         available_tools = ant_data.get("tools", [])
         
         tool_names = [t['name'] for t in available_tools] if available_tools else []
-        if tool_names:
-            log_event(f"🛠️ Verfügbare Werkzeuge: {', '.join(tool_names)}")
 
         messages = []
-        
-        # System-Instruktionen zur Absicherung der Tool-Syntax
         system_instr = (
-            f"\n\nCRITICAL: You have tools available: {tool_names}. "
-            "When using tools to Read or Write files, the parameter is ALWAYS 'file_path'. "
-            "Never use 'path'. Execute tools directly without preamble."
+            f"\n\nCRITICAL: You are a terminal agent. Tools: {tool_names}. "
+            "Use 'file_path' for files. BE CONCISE. NO PREAMBLE."
         )
         
         orig_sys = ant_data.get("system", "")
@@ -116,6 +97,11 @@ def proxy_anthropic_messages():
             "messages": messages,
             "stream": False,
             "temperature": 0.0,
+            "max_tokens": 4096,
+            "options": {
+                "num_ctx": 8192,
+                "num_predict": 1024
+            },
             "tools": [{
                 "type": "function",
                 "function": {
@@ -126,8 +112,7 @@ def proxy_anthropic_messages():
             } for t in available_tools] if available_tools else None
         }
 
-        # Anfrage an Ollama senden
-        resp = requests.post(f"{OLLAMA_URL}/v1/chat/completions", json=ollama_payload, timeout=120)
+        resp = requests.post(f"{OLLAMA_URL}/v1/chat/completions", json=ollama_payload, timeout=240)
         resp.raise_for_status()
         
         return jsonify(convert_to_anthropic(resp.json()))
@@ -137,9 +122,10 @@ def proxy_anthropic_messages():
         return jsonify({"error": str(e)}), 500
 
 if __name__ == '__main__':
-    log_event(f"--- ant-hill-ollama (Die Heinzelmännchen-Brücke) {VERSION} gestartet ---")
+    log_event(f"--- ant-hill-ollama-context {VERSION} gestartet ---")
     log_event(f"📍 Endpoint: {OLLAMA_URL}")
     log_event(f"🤖 Modell: {SELECTED_MODEL}")
     app.run(host='0.0.0.0', port=PORT)
 
 # EOF
+~
