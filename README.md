@@ -3,7 +3,7 @@
 ---
 ### 🌟 Help us grow!
 If this project helps you save API costs or enables your local workflow:
-* **Give us a Star!** ⭐ It helps others find this tool and keeps the development of new features (like Qwen 3.5 optimization) alive.
+* **Give us a Star!** ⭐ It helps others find this tool and keeps the development of new features alive.
 * **Feedback welcome:** Open an issue if you have ideas or found a bug.
 
 ---
