@@ -1,3 +1,13 @@
+# 🐝 ant-hill-ollama
+**The "Heinzelmännchen-Bridge" between Anthropic's Claude Extension and your local Ollama.**
+---
+### 🌟 Help us grow!
+If this project helps you save API costs or enables your local workflow:
+* **Give us a Star!** ⭐ It helps others find this tool and keeps the development of new features (like Qwen 3.5 optimization) alive.
+* **Feedback welcome:** Open an issue if you have ideas or found a bug.
+
+---
+
 # 🐝 ant-hill-ollama (Die Heinzelmännchen-Brücke)
 
 [DE] Ein spezialisierter Middleware-Proxy, der **Claude Code** und lokale **Ollama-Modelle** verheiratet. Wie die Heinzelmännchen aus der Sage erledigt dieser Proxy die schwere Protokoll-Arbeit im Verborgenen.
