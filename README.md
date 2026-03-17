@@ -1,6 +1,8 @@
 # 🐝 ant-hill-ollama
 **The "Heinzelmännchen-Bridge" between Anthropic's Claude Extension and your local Ollama.**
+
 ---
+
 ### 🌟 Help us grow!
 If this project helps you save API costs or enables your local workflow:
 * **Give us a Star!** ⭐ It helps others find this tool and keeps the development of new features alive.
