@@ -1,35 +1,45 @@
 #!/usr/bin/env python3
-# Version: 1.8.2-ant-hill-fixed
-# Description: Turbo version with context boost and correct network endpoint.
-# Status: GitHub Ready - Universal Version
+# Version: 2.0.8-ant-hill-stable-ultra
+# Description: Final Stable Build. Bridges Ollama (Qwen) to Anthropic (Claude Code).
+# Features: 32k Context, Usage/Token-Metadata Fix, Parameter Mapping (file_path).
+# Status: Production Ready for Ubot/nki Environment.
 
 import os, requests, uuid, json
+from datetime import datetime
 from flask import Flask, request, Response, jsonify
 
-VERSION = "1.8.2-ant-hill-fixed"
+VERSION = "2.0.8-ant-hill-stable-ultra"
 app = Flask(__name__)
 
 # --- KONFIGURATION ---
-# Zurückgesetzt auf deine Netzwerk-IP für Ollama
+# Standardmäßig auf nki-Server (10.7.0.79), konfigurierbar via ENV
 OLLAMA_URL = os.getenv("OLLAMA_URL", "http://10.7.0.79:11434")
 SELECTED_MODEL = os.getenv("MODEL_NAME", "qwen3.5:9b-q8_0")
 PORT = int(os.getenv("PROXY_PORT", 11435))
 LOG_FILE = os.getenv("PROXY_LOG", "proxy_output.log")
 
+# Ressourcen-Management
+CONTEXT_WINDOW = int(os.getenv("NUM_CTX", 32768))
+MAX_PREDICT = int(os.getenv("NUM_PREDICT", 4096))
+
 def log_event(msg):
-    """Schreibt Ereignisse in die Log-Datei und auf die Konsole."""
+    """Protokolliert Ereignisse mit Zeitstempel."""
     try:
         with open(LOG_FILE, "a") as f:
-            f.write(f"{msg}\n")
+            f.write(f"[{datetime.now().strftime('%H:%M:%S')}] {msg}\n")
     except Exception as e:
         print(f"Logging-Fehler: {e}")
     print(msg)
 
 def convert_to_anthropic(ollama_data):
-    """Übersetzt das Ollama/OpenAI-Format zurück in das Anthropic-Format."""
+    """
+    Konvertiert das Ollama/OpenAI-Format in das von Claude Code erwartete Anthropic-Format.
+    Inklusive 'usage'-Objekt zur Vermeidung von 'input_tokens' Fehlern.
+    """
     try:
         choice = ollama_data['choices'][0]
         message = choice['message']
+        usage = ollama_data.get('usage', {})
         
         anthropic_resp = {
             "id": f"msg_{uuid.uuid4().hex}",
@@ -37,23 +47,30 @@ def convert_to_anthropic(ollama_data):
             "role": "assistant",
             "model": SELECTED_MODEL,
             "content": [],
-            "stop_reason": "end_turn"
+            "stop_reason": "end_turn",
+            "usage": {
+                "input_tokens": usage.get("prompt_tokens", 0),
+                "output_tokens": usage.get("completion_tokens", 0)
+            }
         }
 
+        # Text-Inhalt verarbeiten
         if message.get('content'):
             anthropic_resp["content"].append({"type": "text", "text": message['content']})
 
+        # Tool-Calls verarbeiten und Parameter mappen
         if message.get('tool_calls'):
             for tc in message['tool_calls']:
                 t_name = tc['function']['name']
                 t_args = tc['function']['arguments']
-                
-                if isinstance(t_args, str):
+                if isinstance(t_args, str): 
                     t_args = json.loads(t_args)
                 
-                if "path" in t_args and "file_path" not in t_args:
-                    log_event(f"🔧 Bridge-Fix: Mapping 'path' -> 'file_path' für {t_name}")
+                # WICHTIG: Claude Code verlangt 'file_path' statt 'path'
+                if "path" in t_args:
                     t_args["file_path"] = t_args.pop("path")
+                if "text" in t_args and "content" not in t_args:
+                    t_args["content"] = t_args.pop("text")
                 
                 anthropic_resp["content"].append({
                     "type": "tool_use",
@@ -64,6 +81,10 @@ def convert_to_anthropic(ollama_data):
             anthropic_resp["stop_reason"] = "tool_use"
             log_event(f"🎯 Tool-Einsatz: {t_name}")
 
+        # Fail-Safe für leeren Content
+        if not anthropic_resp["content"]:
+            anthropic_resp["content"].append({"type": "text", "text": "Task processed."})
+
         return anthropic_resp
     except Exception as e:
         log_event(f"❌ Konvertierungs-Fehler: {e}")
@@ -71,16 +92,19 @@ def convert_to_anthropic(ollama_data):
 
 @app.route('/v1/messages', methods=['POST'])
 def proxy_anthropic_messages():
+    """Haupt-Endpoint für Claude Code Anfragen."""
     try:
         ant_data = request.get_json()
         available_tools = ant_data.get("tools", [])
-        
         tool_names = [t['name'] for t in available_tools] if available_tools else []
+        now_str = datetime.now().strftime("%d.%m.%Y %H:%M")
 
         messages = []
+        # System-Instruktionen zur Steuerung des Modells
         system_instr = (
-            f"\n\nCRITICAL: You are a terminal agent. Tools: {tool_names}. "
-            "Use 'file_path' for files. BE CONCISE. NO PREAMBLE."
+            f"\n\nSystem: Heute ist {now_str}. Verfügbare Tools: {tool_names}. "
+            f"Kontext-Limit: {CONTEXT_WINDOW}. "
+            "Nutze zwingend 'file_path' für Dateioperationen. Antworte präzise."
         )
         
         orig_sys = ant_data.get("system", "")
@@ -89,6 +113,7 @@ def proxy_anthropic_messages():
         
         messages.append({"role": "system", "content": str(orig_sys) + system_instr})
         
+        # Verlauf mappen
         for m in ant_data.get("messages", []):
             messages.append({"role": m["role"], "content": str(m.get("content", ""))})
 
@@ -97,22 +122,22 @@ def proxy_anthropic_messages():
             "messages": messages,
             "stream": False,
             "temperature": 0.0,
-            "max_tokens": 4096,
             "options": {
-                "num_ctx": 8192,
-                "num_predict": 1024
+                "num_ctx": CONTEXT_WINDOW,
+                "num_predict": MAX_PREDICT
             },
             "tools": [{
                 "type": "function",
                 "function": {
                     "name": t["name"],
-                    "description": t.get("description", "Execute task"),
+                    "description": t.get("description", "Aktion ausführen"),
                     "parameters": t.get("input_schema", {})
                 }
             } for t in available_tools] if available_tools else None
         }
 
-        resp = requests.post(f"{OLLAMA_URL}/v1/chat/completions", json=ollama_payload, timeout=240)
+        # Anfrage an nki-Server senden
+        resp = requests.post(f"{OLLAMA_URL}/v1/chat/completions", json=ollama_payload, timeout=400)
         resp.raise_for_status()
         
         return jsonify(convert_to_anthropic(resp.json()))
@@ -122,10 +147,8 @@ def proxy_anthropic_messages():
         return jsonify({"error": str(e)}), 500
 
 if __name__ == '__main__':
-    log_event(f"--- ant-hill-ollama-context {VERSION} gestartet ---")
-    log_event(f"📍 Endpoint: {OLLAMA_URL}")
-    log_event(f"🤖 Modell: {SELECTED_MODEL}")
+    log_event(f"--- ant-hill-stable-ultra {VERSION} gestartet ---")
+    log_event(f"📍 Ziel-Modell: {SELECTED_MODEL} auf {OLLAMA_URL}")
     app.run(host='0.0.0.0', port=PORT)
 
 # EOF
-~
