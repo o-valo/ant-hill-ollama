@@ -67,7 +67,8 @@ Olav (o-valo) GitHub Profile
 📜 Lizenz / License
 
 MIT License - "Andere Leute sollen auch Spaß daran haben!" :-)
-Powert by AI
+
+Powerd by AI
 
 
 
