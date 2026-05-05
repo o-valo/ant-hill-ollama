@@ -22,7 +22,7 @@ If this project helps you save API costs or enables your local workflow:
 
 ```bash
 # 1. Repository klonen & Umgebung erstellen
-git clone [https://github.com/o-valo/ant-hill-ollama.git](https://github.com/o-valo/ant-hill-ollama.git)
+git clone https://github.com/o-valo/ant-hill-ollama.git
 cd ant-hill-ollama
 python3 -m venv venv
 source venv/bin/activate
