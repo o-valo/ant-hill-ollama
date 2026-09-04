@@ -1,0 +1,17 @@
+[Unit]
+Description=ant-hill-ollama Heinzelmännchen-Brücke (Claude Code <-> OpenAI-kompatible Endpunkte)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=bot
+WorkingDirectory=/home/bot/ant-hill-ollama
+# Konfiguration kommt aus ant-hill.conf (Endpunkte, Modell, Spoof, Port).
+# Optional können einzelne Werte hier per Environment übersteuert werden.
+ExecStart=/home/bot/ant-hill-ollama/venv/bin/python3 /home/bot/ant-hill-ollama/llm_proxy.py
+Restart=on-failure
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target
