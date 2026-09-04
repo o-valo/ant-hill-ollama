@@ -8,6 +8,10 @@ __pycache__/
 *.log
 proxy_output.log
 
+# Lokale, maschinenspezifische Konfiguration (nicht pushen - IPs/Keys!)
+# Stattdessen die Vorlage ant-hill.conf.example verwenden.
+ant-hill.conf
+
 # OS
 .DS_Store
 .env
