@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="ant-hill-ollama.jpg" alt="Ant-hill-Ollama / Die Heinzelmännchen-Brücke   Banner" width="100%">
+</p>
+
 # 🐝 ant-hill-ollama
 **The "Heinzelmännchen-Bridge" between Anthropic's Claude Extension and your local Ollama.**
 
