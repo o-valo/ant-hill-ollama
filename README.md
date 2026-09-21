@@ -1,7 +1,3 @@
-<p align="center">
-  <img src="ant-hill-ollama.jpg" alt="Ant-hill-Ollama / Die Heinzelmännchen-Brücke   Banner" width="100%">
-</p>
-
 # 🐝 ant-hill-ollama
 **The "Heinzelmännchen-Bridge" between Anthropic's Claude Extension and your local Ollama.**
 
@@ -117,8 +113,21 @@ Claude Code's strict tool-calling requirements are translated in real-time to ma
 👤 Author
 
 Olav (o-valo) – [github.com/o-valo](https://github.com/o-valo)
-📜 Lizenz / License
-
-MIT License - "Andere Leute sollen auch Spaß daran haben!" :-)
 
 Powered by AI
+---
+
+## Lizenz / License
+
+**GNU Affero General Public License v3.0 oder später** (AGPL-3.0-or-later) —
+vollständiger Text in [LICENSE](LICENSE).
+Copyright (C) 2026 Olav Surawski (<https://github.com/o-valo>).
+
+In Kurzform: benutzen, ändern und weitergeben ist frei erlaubt, solange
+abgeleitete Fassungen wieder unter der AGPL stehen. Abschnitt 13 greift, wenn
+eine **geänderte** Fassung als Netzdienst öffentlich erreichbar ist — dann muss
+der Quellcode dieser Fassung den Nutzern zugänglich sein.
+
+*Short version: use, modify and redistribute freely, as long as derived versions
+stay under the AGPL. Section 13 applies if you make a modified version publicly
+reachable as a network service.*
